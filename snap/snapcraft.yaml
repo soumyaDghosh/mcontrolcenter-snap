@@ -1,0 +1,65 @@
+name: mcontrolcenter # you probably want to 'snapcraft register <name>'
+base: core22 # the base snap is the execution environment for this snap
+version: '0.4.0' # just for humans, typically '1.2+git' or '1.3.2'
+summary: FOSS tool for MSI laptops. # 79 char long summary
+description: |
+  ### Features
+    * CPU and GPU temperature display
+    * Fan speed display
+    * Switch between modes (Since version 0.2):
+        High Performance
+        Balanced
+        Silent
+        Super Battery
+    * Change the maximum battery level limit
+    * Advanced Fan Speed Control (Since version 0.4)
+    * Change other settings such as keyboard backlight mode, USB Power Share, etc.
+
+
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: classic # use 'strict' once you have the right plugs and slots
+
+parts:
+  desktop-qt:
+    source: https://github.com/desktop-app/snapcraft-desktop-helpers.git
+    source-subdir: qt
+    plugin: make
+    make-parameters: ["FLAVOR=qt5"]
+    build-packages:
+      - build-essential
+      - dpkg-dev
+      - gtk-update-icon-cache
+      - libglib2.0-bin
+      - libgtk-3-0
+    stage-packages:
+      - libc-bin
+      - libgdk-pixbuf-2.0-0
+      - libxkbcommon0
+      - locales-all
+    stage:
+      - -./usr/lib/$CRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
+    after:
+      - mcontrolcenter
+  mcontrolcenter:
+    # See 'snapcraft plugins'
+    plugin: nil
+    source: https://github.com/dmitry-s93/MControlCenter/releases/download/${SNAPCRAFT_PROJECT_VERSION}/MControlCenter-${SNAPCRAFT_PROJECT_VERSION}-bin.tar.gz
+    source-type: tar
+    override-build: |
+      set -eux
+      install -vDm755 $CRAFT_PART_SRC/app/mcontrolcenter $CRAFT_PART_INSTALL/usr/bin/mcontrolcenter
+      install -vDm755 $CRAFT_PART_SRC/app/mcontrolcenter-helper $CRAFT_PART_INSTALL/usr/libexec/mcontrolcenter-helper
+      install -vDm644 $CRAFT_PART_SRC/app/mcontrolcenter.desktop $CRAFT_PART_INSTALL/usr/share/applications/mcontrolcenter.desktop
+      install -vDm644 $CRAFT_PART_SRC/app/mcontrolcenter-helper.conf $CRAFT_PART_INSTALL/usr/share/dbus-1/systemd/mcontrolcenter-helper.conf
+      install -vDm644 $CRAFT_PART_SRC/app/mcontrolcenter.helper.service $CRAFT_PART_INSTALL/usr/share/dbus-1/system-services/mcontrolcenter.helper.service
+      install -vDm644 $CRAFT_PART_SRC/app/mcontrolcenter.svg $CRAFT_PART_INSTALL/snap/meta/gui/mcontrolcenter.svg
+    stage-packages:
+      - libqt5widgets5
+      
+apps:
+  mcontrolcenter:
+    desktop: usr/share/applications/mcontrolcenter.desktop
+    command: usr/bin/mcontrolcenter
+    command-chain:
+      - bin/desktop-launch
+    autostart: mcontrolcenter.desktop
